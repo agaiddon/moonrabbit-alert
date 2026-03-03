@@ -9,7 +9,7 @@ WAAA_DECIMALS = 18
 WUSDC_DECIMALS = 18
 
 AMOUNT_IN_WUSDC = 2.0
-TARGET_OUT_WAAA = 12_000_000.0
+TARGET_OUT_WAAA = 1.0
 
 # Fee AMM supposée 0,30% (à ajuster si besoin)
 FEE_BPS = 30
