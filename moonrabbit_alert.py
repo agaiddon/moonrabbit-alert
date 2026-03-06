@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from web3 import Web3
 
@@ -10,8 +11,9 @@ WUSDC_DECIMALS = 18
 
 AMOUNT_IN_WUSDC = 2.0
 TARGET_OUT_WAAA = 12_000_000.0
+LOW_THRESHOLD_WAAA = 10_000_000.0
 
-# Fee AMM supposée 0,30% (à ajuster si besoin)
+# Fee AMM supposée 0,30%
 FEE_BPS = 30
 
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -31,6 +33,22 @@ PAIR_ABI = [
     }
 ]
 
+STATE_FILE = "state.json"
+
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"below_10m": False}
+
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+
 def telegram_send(msg: str) -> None:
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         raise RuntimeError("Variables Telegram manquantes (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).")
@@ -39,11 +57,13 @@ def telegram_send(msg: str) -> None:
     r = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": msg}, timeout=20)
     r.raise_for_status()
 
+
 def amount_out_v2(amount_in: int, reserve_in: int, reserve_out: int, fee_bps: int) -> int:
     amount_in_with_fee = amount_in * (10_000 - fee_bps)
     numerator = amount_in_with_fee * reserve_out
     denominator = reserve_in * 10_000 + amount_in_with_fee
     return numerator // denominator
+
 
 def main():
     w3 = Web3(Web3.HTTPProvider(RPC_URL))
@@ -53,7 +73,7 @@ def main():
     pair = w3.eth.contract(address=Web3.to_checksum_address(PAIR_ADDRESS), abi=PAIR_ABI)
     r0, r1, _ = pair.functions.getReserves().call()
 
-    # token0=WAAA (r0), token1=wUSDC (r1) confirmé
+    # token0=WAAA (r0), token1=wUSDC (r1)
     reserve_waaa_raw = int(r0)
     reserve_wusdc_raw = int(r1)
 
@@ -64,8 +84,21 @@ def main():
     line = f"2 wUSDC -> ~{out_waaa:,.0f} WAAA | reserves: WAAA={reserve_waaa_raw} wUSDC={reserve_wusdc_raw}"
     print(line)
 
+    state = load_state()
+    is_below_10m = out_waaa < LOW_THRESHOLD_WAAA
+
+    # Alerte si on atteint ou dépasse 12M
     if out_waaa >= TARGET_OUT_WAAA:
         telegram_send("✅ Seuil atteint : " + line)
+
+    # Alerte uniquement au franchissement vers le bas des 10M
+    if is_below_10m and not state.get("below_10m", False):
+        telegram_send("⚠️ Passage sous 10M : " + line)
+
+    # Mise à jour de l'état
+    state["below_10m"] = is_below_10m
+    save_state(state)
+
 
 if __name__ == "__main__":
     main()
