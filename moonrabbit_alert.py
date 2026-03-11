@@ -10,8 +10,14 @@ WAAA_DECIMALS = 18
 WUSDC_DECIMALS = 18
 
 AMOUNT_IN_WUSDC = 2.0
-TARGET_OUT_WAAA = 12_000_000.0
 LOW_THRESHOLD_WAAA = 10_000_000.0
+
+LEVELS = {
+    "9m": 9_000_000.0,
+    "10m": 10_000_000.0,
+    "11m": 11_000_000.0,
+    "12m": 12_000_000.0
+}
 
 # Fee AMM supposée 0,30%
 FEE_BPS = 30
@@ -41,7 +47,16 @@ def load_state():
         with open(STATE_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        return {"below_10m": False}
+        return {
+            "below_10m": False,
+            "last_hourly_rate": None,
+            "levels_triggered": {
+                "9m": False,
+                "10m": False,
+                "11m": False,
+                "12m": False
+            }
+        }
 
 
 def save_state(state):
@@ -85,18 +100,35 @@ def main():
     print(line)
 
     state = load_state()
+
+    if "levels_triggered" not in state:
+        state["levels_triggered"] = {
+            "9m": False,
+            "10m": False,
+            "11m": False,
+            "12m": False
+        }
+
     is_below_10m = out_waaa < LOW_THRESHOLD_WAAA
 
-    # Alerte si on atteint ou dépasse 12M
-    if out_waaa >= TARGET_OUT_WAAA:
-        telegram_send("✅ Seuil atteint : " + line)
-
-    # Alerte uniquement au franchissement vers le bas des 10M
+    # Alerte spéciale si on passe sous 10M
     if is_below_10m and not state.get("below_10m", False):
         telegram_send("⚠️ Passage sous 10M : " + line)
 
-    # Mise à jour de l'état
+    # Alertes de franchissement à la hausse
+    for level_name, threshold in LEVELS.items():
+        already_triggered = state["levels_triggered"].get(level_name, False)
+
+        if out_waaa >= threshold and not already_triggered:
+            telegram_send(f"🔔 Passage au-dessus de {threshold:,.0f} WAAA : " + line)
+            state["levels_triggered"][level_name] = True
+
+        elif out_waaa < threshold:
+            state["levels_triggered"][level_name] = False
+
+    # Mise à jour état seuil bas
     state["below_10m"] = is_below_10m
+
     save_state(state)
 
 
