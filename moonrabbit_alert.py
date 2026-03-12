@@ -11,6 +11,7 @@ WUSDC_DECIMALS = 18
 
 AMOUNT_IN_WUSDC = 2.0
 LOW_THRESHOLD_WAAA = 10_000_000.0
+LOW_THRESHOLD_9M = 9_000_000.0
 
 LEVELS = {
     "9m": 9_000_000.0,
@@ -49,6 +50,7 @@ def load_state():
     except FileNotFoundError:
         return {
             "below_10m": False,
+            "below_9m": False,
             "last_hourly_rate": None,
             "levels_triggered": {
                 "9m": False,
@@ -110,10 +112,15 @@ def main():
         }
 
     is_below_10m = out_waaa < LOW_THRESHOLD_WAAA
+    is_below_9m = out_waaa < LOW_THRESHOLD_9M
 
     # Alerte spéciale si on passe sous 10M
     if is_below_10m and not state.get("below_10m", False):
         telegram_send("⚠️ Passage sous 10M : " + line)
+
+    # Alerte spéciale si on passe sous 9M
+    if is_below_9m and not state.get("below_9m", False):
+        telegram_send("⚠️ Passage sous 9M : " + line)
 
     # Alertes de franchissement à la hausse
     for level_name, threshold in LEVELS.items():
@@ -126,8 +133,9 @@ def main():
         elif out_waaa < threshold:
             state["levels_triggered"][level_name] = False
 
-    # Mise à jour état seuil bas
+    # Mise à jour état seuils bas
     state["below_10m"] = is_below_10m
+    state["below_9m"] = is_below_9m
 
     save_state(state)
 
