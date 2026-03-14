@@ -49,16 +49,15 @@ def load_state():
             return json.load(f)
     except FileNotFoundError:
         return {
-            "below_10m": False,
-            "below_9m": False,
-            "last_hourly_rate": None,
-            "levels_triggered": {
-                "9m": False,
-                "10m": False,
-                "11m": False,
-                "12m": False
-            }
-        }
+    "below_10m": False,
+    "below_9m": False,
+    "levels_triggered": {
+        "9m": False,
+        "10m": False,
+        "11m": False,
+        "12m": False
+    }
+}
 
 
 def save_state(state):
