@@ -1,9 +1,9 @@
 {
   "below_10m": true,
-  "below_9m": false,
+  "below_9m": true,
   "last_hourly_rate": 9112406.828170335,
   "levels_triggered": {
-    "9m": true,
+    "9m": false,
     "10m": false,
     "11m": false,
     "12m": false
