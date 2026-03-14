@@ -30,7 +30,7 @@ PAIR_ABI = [
     }
 ]
 
-STATE_FILE = "state.json"
+STATE_FILE = "hourly_state.json"
 
 
 def load_state():
@@ -39,9 +39,8 @@ def load_state():
             return json.load(f)
     except FileNotFoundError:
         return {
-            "below_10m": False,
-            "last_hourly_rate": None
-        }
+    "last_hourly_rate": None
+}
 
 
 def save_state(state):
