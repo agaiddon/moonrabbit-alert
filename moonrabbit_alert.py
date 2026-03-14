@@ -40,7 +40,7 @@ PAIR_ABI = [
     }
 ]
 
-STATE_FILE = "state.json"
+STATE_FILE = "alert_state.json"
 
 
 def load_state():
