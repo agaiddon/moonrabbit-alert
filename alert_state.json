@@ -1,10 +1,1 @@
-{
-  "below_10m": true,
-  "below_9m": true,
-  "levels_triggered": {
-    "9m": false,
-    "10m": false,
-    "11m": false,
-    "12m": false
-  }
-}
+{"below_10m": true, "below_9m": false, "levels_triggered": {"9m": true, "10m": false, "11m": false, "12m": false}}
